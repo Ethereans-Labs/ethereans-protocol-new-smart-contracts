@@ -7,7 +7,7 @@ interface ITimeBombOwner is ILazyInitCapableElement {
     
     function timeBombOwner() external view returns (address);
 
-    function setTimeBombOwner(address newValue) external returns(address oldValue);
+    function setTimeBombOwner(address _timeBombOwner) external returns(address oldTimeBombOwner);
 
     function submit(address location, bytes calldata payload, address restReceiver) external payable returns(bytes memory response);
     

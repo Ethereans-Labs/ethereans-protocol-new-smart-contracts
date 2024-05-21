@@ -25,7 +25,8 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
             interfaceId == type(IReFunder).interfaceId ||
             interfaceId == this.callWithBenefit.selector ||
             interfaceId == this.isRefundable.selector ||
-            interfaceId == this.refundValue.selector;
+            interfaceId == this.refundValue.selector ||
+            interfaceId == this.setRefundValue.selector;
     }
 
     function callWithBenefit(address componentAddr, bytes calldata payload, address restReceiver) external payable returns(bytes memory response) {
@@ -46,6 +47,10 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
     function isRefundable(address componentAddr, bytes4 selector) public view returns(bool){
         require(IERC165(componentAddr).supportsInterface(IRefundableComponent.isRefundable.selector), "Refund not supported");
         return IRefundableComponent(componentAddr).isRefundable(selector);
+    }
+
+    function setRefundValue(uint256 _refundValue) external authorizedOnly{
+        refundValue = _refundValue;
     }
 
     //Default behaviour to receive initial funds

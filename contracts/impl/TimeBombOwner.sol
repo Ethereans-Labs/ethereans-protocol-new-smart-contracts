@@ -49,11 +49,11 @@ contract TimeBombOwner is ITimeBombOwner, LazyInitCapableElement {
             interfaceId == this.maxExtensionTime.selector;
     }
 
-    function setTimeBombOwner(address newTimeBombOwner) override onlyTimeBombOwner withinEndTime public returns(address oldTimeBombOwner) {
+    function setTimeBombOwner(address _timeBombOwner) override onlyTimeBombOwner withinEndTime public returns(address oldTimeBombOwner) {
         oldTimeBombOwner = timeBombOwner;
-        timeBombOwner = newTimeBombOwner;
+        timeBombOwner = _timeBombOwner;
 
-        emit TimeBombOwnershipTransferred(oldTimeBombOwner, newTimeBombOwner);
+        emit TimeBombOwnershipTransferred(oldTimeBombOwner, _timeBombOwner);
     }
 
     function extendTimeBombOwnership(uint256 extendSeconds) onlyTimeBombOwner withinEndTime public returns(uint256){
