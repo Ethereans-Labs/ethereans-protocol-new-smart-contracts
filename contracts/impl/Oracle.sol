@@ -14,7 +14,7 @@ contract Oracle is IOracle, LazyInitCapableElement {
 
     bytes private compPriceFunctionPayload;
 
-    uint256[2] private lastSafePrices;
+    uint256[2] public lastSafePrices;
     uint256 public lastSetBlock;
 
     uint256 public minSetInterval;
@@ -57,9 +57,9 @@ contract Oracle is IOracle, LazyInitCapableElement {
         }
     }
 
-    function calculatePrice() internal view returns (uint256){
-
-        (bool success, bytes memory returnData) = compPriceContract.staticcall(compPriceFunctionPayload);
+    function calculatePrice() internal view returns (uint256){  // The method MUST return a 18 decimals uint256
+        
+        (bool success, bytes memory returnData) = compPriceContract.staticcall(compPriceFunctionPayload); // The method MUST return a 18 decimals uint256
 
         require(success, "Price read from reference contract FAILED.");
 
@@ -70,8 +70,8 @@ contract Oracle is IOracle, LazyInitCapableElement {
         require(lastSetBlock < block.number, "Price not safe, wait at least a block."); 
         require(block.number < lastSetBlock + refundableInterval, "Price not safe, too old.");
         
-        uint256 pricePercDiff = ((lastSafePrices[0] > lastSafePrices[1]) ? (lastSafePrices[0] - lastSafePrices[1]) : (lastSafePrices[1] - lastSafePrices[0]))/lastSafePrices[1]*10000;  //Basis points
-        require(pricePercDiff > limitPercDiff, "Price not safe, too different from the previous one."); 
+        uint256 pricePercDiff = ((lastSafePrices[0] > lastSafePrices[1]) ? (lastSafePrices[0] - lastSafePrices[1]) : (lastSafePrices[1] - lastSafePrices[0]))*10000/lastSafePrices[0];  //Basis points
+        require(pricePercDiff < limitPercDiff, "Price not safe, too different from the previous one."); 
         
         return lastSafePrices[1];
     }
