@@ -13,21 +13,30 @@ contract GentleSwapper is IGentleSwapper, LazyInitCapableElement {
 
     address public tokenToSwap;
     address public tokenToReceive;
-
+    address public gentleSwapReceiver;
+    uint256 public gentleSwapValue;
     address public oracle;
-
     address public swapLocation;
     bytes public swapPayload;
 
     uint256 public gentleTolerance; //Basis points
-
     uint256 public refoundableThreshold;
 
     constructor(bytes memory lazyInitData) LazyInitCapableElement(lazyInitData) {
     }
 
     function _lazyInit(bytes memory lazyInitData) internal override returns (bytes memory) {
-        (gentleTolerance, refoundableThreshold, tokenToSwap, tokenToReceive, oracle, swapLocation, swapPayload) = abi.decode(lazyInitData, (uint256, uint256, address, address, address, address, bytes));
+        (
+         gentleTolerance,
+         refoundableThreshold,
+         gentleSwapValue,
+         gentleSwapReceiver,
+         tokenToSwap,
+         tokenToReceive,
+         oracle,
+         swapLocation,
+         swapPayload
+        ) = abi.decode(lazyInitData, (uint256, uint256, uint256, address, address, address, address, address, bytes));
         return "";
     }
 
@@ -35,6 +44,7 @@ contract GentleSwapper is IGentleSwapper, LazyInitCapableElement {
         return
             interfaceId == type(IGentleSwapper).interfaceId ||
             interfaceId == type(IRefundableComponent).interfaceId ||
+            interfaceId == this.submit.selector ||
             interfaceId == this.gentleSwap.selector ||
             interfaceId == this.setSwapSettings.selector ||
             interfaceId == this.setGentleTolerance.selector ||
@@ -52,18 +62,17 @@ contract GentleSwapper is IGentleSwapper, LazyInitCapableElement {
 
     function gentleSwap() external payable{
         
-        uint256 oldTokenToSwapBalance = IERC20(tokenToSwap).balanceOf(address(this));
-        uint256 oldTokenToReceiveBalance = IERC20(tokenToReceive).balanceOf(address(this));
+        uint256 oldTokenToSwapBalance = ERC20(tokenToSwap).balanceOf(address(this));
+        uint256 oldTokenToReceiveBalance = ERC20(tokenToReceive).balanceOf(gentleSwapReceiver);
 
-        uint256 safePrice = IOracle(oracle).readSafePrice();
+        uint256 safePrice = Oracle(oracle).readSafePrice();
 
-        require(IERC20(tokenToSwap).approve(address(swapLocation), 4*(10**6)), "approve failed.");
+        require(IERC20(tokenToSwap).approve(address(swapLocation), gentleSwapValue), "approve failed.");
         
-        (bool success, bytes memory returnData) = swapLocation.call{value:msg.value}(swapPayload);
-        require(success, "Swap FAILED.");
+        swapLocation.submit(msg.value, swapPayload);
 
-        uint256 newTokenToSwapBalance = IERC20(tokenToSwap).balanceOf(address(this));
-        uint256 newTokenToReceiveBalance = IERC20(tokenToReceive).balanceOf(address(this));
+        uint256 newTokenToSwapBalance = ERC20(tokenToSwap).balanceOf(address(this));
+        uint256 newTokenToReceiveBalance = ERC20(tokenToReceive).balanceOf(gentleSwapReceiver);
 
         uint256 tokenToSwapSwapped = (newTokenToSwapBalance > oldTokenToSwapBalance) ? (newTokenToSwapBalance - oldTokenToSwapBalance) :  (oldTokenToSwapBalance - newTokenToSwapBalance);
         uint256 tokenToReceiveSwapped = (newTokenToReceiveBalance > oldTokenToReceiveBalance) ? (newTokenToReceiveBalance - oldTokenToReceiveBalance) :  (oldTokenToReceiveBalance - newTokenToReceiveBalance);
@@ -71,32 +80,33 @@ contract GentleSwapper is IGentleSwapper, LazyInitCapableElement {
         uint256 tokenToSwapDecimals = ERC20(tokenToSwap).decimals();
         uint256 tokenToReceiveDecimals = ERC20(tokenToReceive).decimals();
 
-        if(tokenToSwapDecimals>=tokenToReceiveDecimals)
+        if(tokenToSwapDecimals >= tokenToReceiveDecimals)
             tokenToReceiveSwapped *= 10**(tokenToSwapDecimals-tokenToReceiveDecimals);
         else
             tokenToSwapSwapped *= 10**(tokenToReceiveDecimals-tokenToSwapDecimals);
         
-
         uint256 swapPrice;
         if(Oracle(oracle).referenceToken0() == tokenToSwap)
             swapPrice = (tokenToReceiveSwapped * (10**18)) / tokenToSwapSwapped;
         else
             swapPrice = (tokenToSwapSwapped * (10**18)) / tokenToReceiveSwapped;
 
-        uint256 pricePercDiff = ((safePrice>swapPrice) ? (safePrice-swapPrice) : (swapPrice-safePrice))*10000/safePrice; //Basis points
-        require(pricePercDiff<gentleTolerance, "Not gentle swap, price impact too high.");
-
+        uint256 pricePercDiff = ((safePrice > swapPrice) ? (safePrice - swapPrice) : (swapPrice - safePrice)) * 10000 / safePrice; //Basis points
+        require(pricePercDiff < gentleTolerance, "Not gentle swap, price impact too high.");
     }
 
-    function isRefundable(bytes4 selector) external view returns(bool){
+    function isRefundable(bytes4 selector) external view override returns(bool){
         if(selector == this.gentleSwap.selector)
-            return IERC20(tokenToSwap).balanceOf(address(this)) >= refoundableThreshold;
+            return ERC20(tokenToSwap).balanceOf(address(this)) >= refoundableThreshold;
         return false;
     }
 
-    function setSwapSettings(address _tokenToSwap, address _tokenToReceive, address _swapLocation, bytes calldata _swapPayload) external authorizedOnly{
+    function setSwapSettings(address _tokenToSwap, address _tokenToReceive, address _gentleSwapReceiver, uint256 _gentleSwapValue, address _oracle, address _swapLocation, bytes calldata _swapPayload) external authorizedOnly{
         tokenToSwap = _tokenToSwap;
         tokenToReceive = _tokenToReceive;
+        gentleSwapReceiver = _gentleSwapReceiver;
+        gentleSwapValue = _gentleSwapValue;
+        oracle = _oracle;
         swapLocation = _swapLocation;
         swapPayload = _swapPayload;
     }

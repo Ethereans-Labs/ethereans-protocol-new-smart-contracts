@@ -31,7 +31,7 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
 
     function callWithBenefit(address componentAddr, bytes calldata payload, address restReceiver) external payable returns(bytes memory response) {
         require(componentAddr != address(0),"Specify a valid address!");
-        require(this.isRefundable(componentAddr, bytes4(payload[:4])), "Not refundable component");
+        require(this.isRefundable(componentAddr, bytes4(payload[:4])), "Not refundable component.");
         
         uint256 oldBalance = address(this).balance - msg.value;
         response = componentAddr.submit(msg.value, payload);
@@ -45,7 +45,7 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
     }
     
     function isRefundable(address componentAddr, bytes4 selector) public view returns(bool){
-        require(IERC165(componentAddr).supportsInterface(IRefundableComponent.isRefundable.selector), "Refund not supported");
+        require(IERC165(componentAddr).supportsInterface(IRefundableComponent.isRefundable.selector), "Refund not supported.");
         return IRefundableComponent(componentAddr).isRefundable(selector);
     }
 

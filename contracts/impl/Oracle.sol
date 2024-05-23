@@ -14,7 +14,7 @@ contract Oracle is IOracle, LazyInitCapableElement {
 
     bytes private compPriceFunctionPayload;
 
-    uint256[2] public lastSafePrices;
+    uint256[2] private lastSafePrices;
     uint256 public lastSetBlock;
 
     uint256 public minSetInterval;
@@ -25,7 +25,15 @@ contract Oracle is IOracle, LazyInitCapableElement {
     }
 
     function _lazyInit(bytes memory lazyInitData) internal override returns (bytes memory) {
-        (minSetInterval, refundableInterval, limitPercDiff, compPriceContract, referenceToken0, referenceToken1, compPriceFunctionPayload) = abi.decode(lazyInitData, (uint256, uint256, uint256, address, address, address, bytes));
+        (
+            minSetInterval, 
+            refundableInterval,
+            limitPercDiff,
+            compPriceContract,
+            referenceToken0,
+            referenceToken1,
+            compPriceFunctionPayload
+        ) = abi.decode(lazyInitData, (uint256, uint256, uint256, address, address, address, bytes));
 
         lastSetBlock = block.number;
         uint256 price = calculatePrice();
@@ -40,6 +48,7 @@ contract Oracle is IOracle, LazyInitCapableElement {
         return
             interfaceId == type(IOracle).interfaceId ||
             interfaceId == type(IRefundableComponent).interfaceId ||
+            interfaceId == this.submit.selector ||
             interfaceId == this.readSafePrice.selector||
             interfaceId == this.setPrice.selector ||
             interfaceId == this.setMinSetInterval.selector ||
@@ -60,7 +69,6 @@ contract Oracle is IOracle, LazyInitCapableElement {
     function calculatePrice() internal view returns (uint256){  // The method MUST return a 18 decimals uint256
         
         (bool success, bytes memory returnData) = compPriceContract.staticcall(compPriceFunctionPayload); // The method MUST return a 18 decimals uint256
-
         require(success, "Price read from reference contract FAILED.");
 
         return abi.decode(returnData, (uint256));
@@ -85,7 +93,7 @@ contract Oracle is IOracle, LazyInitCapableElement {
         lastSetBlock = block.number;
     }
 
-    function isRefundable(bytes4 selector) external view returns(bool){
+    function isRefundable(bytes4 selector) external view override returns(bool){
         if(selector == this.setPrice.selector)
             return block.number >= lastSetBlock + refundableInterval;
         return false;

@@ -17,7 +17,6 @@ contract TimeBombOwner is ITimeBombOwner, LazyInitCapableElement {
     uint256 public ownershipDuration;
 
     uint256 public extensions = 0;
-
     uint256 public maxExtensions;
     uint256 public maxExtensionTime;
 
@@ -53,19 +52,19 @@ contract TimeBombOwner is ITimeBombOwner, LazyInitCapableElement {
         oldTimeBombOwner = timeBombOwner;
         timeBombOwner = _timeBombOwner;
 
-        emit TimeBombOwnershipTransferred(oldTimeBombOwner, _timeBombOwner);
+        emit TimeBombOwnershipTransferred( oldTimeBombOwner, _timeBombOwner);
     }
 
     function extendTimeBombOwnership(uint256 extendSeconds) onlyTimeBombOwner withinEndTime public returns(uint256){
-        require(extensions<maxExtensions, "You have run out of available extensions");
-        require(extendSeconds<=maxExtensionTime, "You want to extend the deadline too much");
+        require(extensions < maxExtensions, "You have run out of available extensions.");
+        require(extendSeconds <= maxExtensionTime, "You want to extend the deadline too much.");
 
         extensions ++;
-        ownershipDuration+=extendSeconds;
+        ownershipDuration += extendSeconds;
 
         uint256 end = endTime();
 
-        emit TimeBombOwnershipExtended(extendSeconds, extensions, end);
+        emit TimeBombOwnershipExtended( extendSeconds, extensions, end);
 
         return end;
     }
@@ -79,7 +78,7 @@ contract TimeBombOwner is ITimeBombOwner, LazyInitCapableElement {
     }
 
     function _disableComponent() internal{
-        IOrganization(owner).set(IOrganization.Component(componentKey, address(0), false, true));
+        IOrganization(owner).set(IOrganization.Component( componentKey, address(0), false, true));
     }
     
     function submit(address location, bytes calldata payload, address restReceiver) override onlyTimeBombOwner withinEndTime external payable returns(bytes memory response) {
@@ -96,17 +95,17 @@ contract TimeBombOwner is ITimeBombOwner, LazyInitCapableElement {
     }
 
     modifier onlyTimeBombOwner {
-        require(msg.sender == timeBombOwner, "You are not the TimeBombOwner");
+        require(msg.sender == timeBombOwner, "You are not the TimeBombOwner.");
         _;
     }
 
     modifier withinEndTime {
-        require(block.timestamp < endTime(), "Time expired");
+        require(block.timestamp < endTime(), "Time expired.");
         _;
     }
 
     modifier endTimeExpired {
-        require(block.timestamp > endTime(), "Too early");
+        require(block.timestamp > endTime(), "Too early.");
         _;
     }
 }
