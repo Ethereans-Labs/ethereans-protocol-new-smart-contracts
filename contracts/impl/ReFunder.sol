@@ -10,13 +10,14 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 contract ReFunder is IReFunder, LazyInitCapableElement {
     using ReflectionUtilities for address;
 
-    uint256 public refundValue; //wei   
+    uint256 public refundPercentage; //18 decimals percentage
+    uint256 public constant FULL_PRECISION = 1e18;
 
     constructor(bytes memory lazyInitData) LazyInitCapableElement(lazyInitData) {
     }
 
     function _lazyInit(bytes memory lazyInitData) internal override returns (bytes memory) {
-        (refundValue) = abi.decode(lazyInitData, (uint256));
+        (refundPercentage) = abi.decode(lazyInitData, (uint256));
         return "";
     }
 
@@ -24,15 +25,17 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
         return
             interfaceId == type(IReFunder).interfaceId ||
             interfaceId == this.callWithBenefit.selector ||
-            interfaceId == this.isRefundable.selector ||
-            interfaceId == this.refundValue.selector ||
-            interfaceId == this.setRefundValue.selector;
+            interfaceId == this.refundPercentage.selector ||
+            interfaceId == this.setRefundPercentage.selector;
     }
 
-    function callWithBenefit(address componentAddr, bytes calldata payload, address restReceiver) external payable returns(bytes memory response) {
-        require(componentAddr != address(0),"Specify a valid address!");
-        require(this.isRefundable(componentAddr, bytes4(payload[:4])), "Not refundable component.");
+    function callWithBenefit(address componentAddr, bytes calldata payload, address restReceiver, address refundRecipient, uint256 extraValue) external payable returns(bytes memory response) {
+        uint256 usedGas = gasleft();
         
+        require(componentAddr != address(0),"Specify a valid address!");
+        require(IRefundableComponent(componentAddr).isRefundable(msg.sender, componentAddr, bytes4(payload[:4]), payload, extraValue), "Not refundable component.");  
+        
+        //Call to the refunding method
         uint256 oldBalance = address(this).balance - msg.value;
         response = componentAddr.submit(msg.value, payload);
         uint256 actualBalance = address(this).balance;
@@ -40,21 +43,23 @@ contract ReFunder is IReFunder, LazyInitCapableElement {
             (restReceiver != address(0) ? restReceiver : msg.sender).submit(address(this).balance - oldBalance, "");
         }
 
+        //Calculate gas used and refund value
+        usedGas -= gasleft();
+        uint256 refundValue = _calculatePercentage(usedGas * tx.gasprice, refundPercentage + 1e18);
+
         //Refund
-        (msg.sender).submit(refundValue, "");
-    }
-    
-    function isRefundable(address componentAddr, bytes4 selector) public view returns(bool){
-        require(IERC165(componentAddr).supportsInterface(IRefundableComponent.isRefundable.selector), "Refund not supported.");
-        return IRefundableComponent(componentAddr).isRefundable(selector);
+        (refundRecipient).submit(refundValue, "");
     }
 
-    function setRefundValue(uint256 _refundValue) external authorizedOnly{
-        refundValue = _refundValue;
+    function setRefundPercentage(uint256 _refundPercentage) external authorizedOnly{
+        refundPercentage = _refundPercentage;
+    }
+
+    function _calculatePercentage(uint256 total, uint256 percentage) internal pure returns (uint256) {
+        return (total * ((percentage * 1e18) / FULL_PRECISION)) / 1e18;
     }
 
     //Default behaviour to receive initial funds
     receive() external payable {}
-    fallback() external payable {}
 
 }

@@ -2,6 +2,5 @@
 pragma solidity ^0.8.0;
 
 interface IRefundableComponent{
-    //TODO Do we need to set up generic parameters through a payload?
-    function isRefundable(bytes4 selector) external view returns(bool);
+    function isRefundable(address subject, address location, bytes4 selector, bytes calldata, uint256) external view returns(bool);
 }
