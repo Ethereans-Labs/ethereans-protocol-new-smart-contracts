@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "../model/ITimeBombOwner.sol";
-import "https://github.com/EthereansOS/ethereansos-swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
-import { ReflectionUtilities } from "https://github.com/EthereansOS/ethereansos-swissknife/contracts/lib/GeneralUtilities.sol";
+import "@ethereans-labs/swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
+import { ReflectionUtilities } from "@ethereans-labs/swissknife/contracts/lib/GeneralUtilities.sol";
 import "https://github.com/EthereansOS/ETHComputationalOrgs/blob/main/contracts/core/model/IOrganization.sol";
 
 

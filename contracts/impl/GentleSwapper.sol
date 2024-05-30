@@ -6,8 +6,8 @@ import "../model/IQuoterComponent.sol";
 import "../model/ISwapperComponent.sol";
 import ".deps/github/EthereansOS/ETHComputationalOrgs/contracts/core/model/IOrganization.sol";
 import "../impl/Oracle.sol";
-import "https://github.com/EthereansOS/ethereansos-swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
-import { ReflectionUtilities } from "https://github.com/EthereansOS/ethereansos-swissknife/contracts/lib/GeneralUtilities.sol";
+import "@ethereans-labs/swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
+import { ReflectionUtilities } from "@ethereans-labs/swissknife/contracts/lib/GeneralUtilities.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 

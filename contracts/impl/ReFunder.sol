@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "../model/IReFunder.sol";
 import "../model/IRefundableComponent.sol";
-import "https://github.com/EthereansOS/ethereansos-swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
-import { ReflectionUtilities } from "https://github.com/EthereansOS/ethereansos-swissknife/contracts/lib/GeneralUtilities.sol";
+import "@ethereans-labs/swissknife/contracts/generic/impl/LazyInitCapableElement.sol";
+import { ReflectionUtilities } from "@ethereans-labs/swissknife/contracts/lib/GeneralUtilities.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract ReFunder is IReFunder, LazyInitCapableElement {
